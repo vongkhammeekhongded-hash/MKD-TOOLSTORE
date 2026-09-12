@@ -289,6 +289,25 @@
         </div>
         <pre id="jsArrayOutput"></pre>
       </div>
+
+      <div class="panel">
+        <h3>③ ຄິວອາ (QR) ຮັບເງິນຂອງຮ້ານ</h3>
+        <p style="color:var(--text-dim); font-size:13px; margin-top:-6px;">ຮູບ QR ນີ້ຈະສະແດງໃນໜ້າຮ້ານເມື່ອລູກຄ້າເລືອກຊຳລະແບບໂອນທະນາຄານ ຫຼື QR / Mobile Banking</p>
+        <div style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;">
+          <img id="qrPreviewImg" class="img-preview" style="width:90px;height:90px;" src="https://placehold.co/100x100/222/fff?text=QR">
+          <div style="flex:1; min-width:220px;">
+            <div class="field"><label>ລິ້ງ URL ຮູບ QR</label><input id="qrUrlInput" placeholder="https://..." oninput="onQrUrlInput()"></div>
+            <label class="slip-upload-btn" for="qrFileInput" style="display:block; text-align:center; border:1px dashed var(--line); border-radius:8px; padding:9px; font-size:12.5px; color:var(--text-dim); cursor:pointer; margin-bottom:10px;">📁 ຫຼືອັບໂຫລດຮູບ QR ຈາກເຄື່ອງ</label>
+            <input type="file" id="qrFileInput" accept="image/*" style="display:none;" onchange="onQrFile(event)">
+            <div style="font-size:11px; color:var(--text-dim); margin:-4px 0 10px;">💡 ຄວນໃຊ້ຮູບຂະໜາດນ້ອຍ (ບໍ່ເກີນ ~1MB)</div>
+            <div class="toolbar" style="margin-bottom:0;">
+              <button class="btn btn-primary" onclick="saveQr()">💾 ບັນທຶກ QR</button>
+              <button class="btn btn-ghost" onclick="copyQrCode()">📋 ກັອບປີ້ໂຄ້ດ ສຳລັບ index.html</button>
+            </div>
+          </div>
+        </div>
+        <pre id="qrCodeOutput" style="margin-top:14px;"></pre>
+      </div>
     </section>
 
     <!-- ============ SETTINGS ============ -->
@@ -328,11 +347,18 @@
     </div>
     <datalist id="catList"></datalist>
     <div class="field">
-      <label>ລິ້ງຮູບພາບ</label>
-      <div style="display:flex; gap:10px; align-items:center;">
+      <label>ລາຍລະອຽດສິນຄ້າ (ສະແດງເມື່ອລູກຄ້າກົດເບິ່ງສິນຄ້າ)</label>
+      <textarea id="f_description" rows="4" placeholder="ອະທິບາຍລາຍລະອຽດ, ຄຸນສົມບັດ, ວິທີໃຊ້ ຫຼືຂໍ້ມູນອື່ນໆ ຂອງສິນຄ້ານີ້..."></textarea>
+    </div>
+    <div class="field">
+      <label>ຮູບພາບສິນຄ້າ</label>
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
         <img id="f_imgPreview" class="img-preview" src="https://placehold.co/100x100/222/fff?text=?" onerror="this.src='https://placehold.co/100x100/222/fff?text=No+Image'">
-        <input id="f_image" style="flex:1;" placeholder="https://..." oninput="document.getElementById('f_imgPreview').src=this.value||'https://placehold.co/100x100/222/fff?text=?'">
+        <input id="f_image" style="flex:1;" placeholder="ວາງລິ້ງ URL ຮູບພາບ..." oninput="document.getElementById('f_imgPreview').src=this.value||'https://placehold.co/100x100/222/fff?text=?'">
       </div>
+      <label class="slip-upload-btn" for="f_imageFile" style="display:block; text-align:center; border:1px dashed var(--line); border-radius:8px; padding:9px; font-size:12.5px; color:var(--text-dim); cursor:pointer;">📁 ຫຼືອັບໂຫລດຮູບຈາກເຄື່ອງ (ບໍ່ຕ້ອງມີລິ້ງ)</label>
+      <input type="file" id="f_imageFile" accept="image/*" style="display:none;" onchange="onProductImageFile(event)">
+      <div style="font-size:11px; color:var(--text-dim); margin-top:4px;">💡 ຮູບທີ່ອັບໂຫລດຈະຖືກເກັບໄວ້ໃນເຄື່ອງນີ້ໂດຍກົງ, ຄວນໃຊ້ຮູບຂະໜາດນ້ອຍ (ບໍ່ເກີນ ~1MB) ເພື່ອບໍ່ໃຫ້ຂໍ້ມູນເຕັມ</div>
     </div>
     <div class="field">
       <label>ສະຖານະສິນຄ້າ</label>
@@ -361,17 +387,19 @@ const STORAGE_KEY = "laobuild_products_v1";
 const PW_KEY = "laobuild_admin_pw";
 const AUTH_KEY = "laobuild_admin_auth";
 const DEFAULT_PW = "admin1234";
+const QR_KEY = "laobuild_store_qr";
+const DEFAULT_QR = "https://placehold.co/300x300/ffffff/222?text=Store+QR";
 
 const SAMPLE_PRODUCTS = [
-  {id:"27976", code:"+27976 (5Z)", name:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ເຄີ່ງເງົາ (LR-112)", price:358427, image:"https://placehold.co/300x300/f3720c/1a0d00?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true},
-  {id:"27735", code:"+27735 (5Z)", name:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ເຄີ່ງເງົາ (LR-115)", price:358427, image:"https://placehold.co/300x300/f3720c/1a0d00?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:false},
-  {id:"24473", code:"+24473 (5Z)", name:"ສີຮອງພື້ນ ປູນເກົ່າ ແລະ ປູນໃໝ່ ຜາຍນອກ-ໃນ (#1000)", price:2254789, image:"https://placehold.co/300x300/e6533f/fff?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true},
-  {id:"22129", code:"+22129 (3Z)", name:"ທິນເນີ ປະສົມແລກເກີ (No.R71) (1/4GL) TOA", price:121136, image:"https://placehold.co/300x300/1c1c1f/f2f0ec?text=Thinner", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true},
-  {id:"67011", code:"+67011", name:"ດອກໄຟດອກປ້ອມ ແອວຈິດ (E27) ແສງຂາວ (6500K)", price:44174, image:"https://placehold.co/300x300/ffffff/222?text=LED", category:"ອຸປະກອນໄຟຟ້າ", stock:true},
-  {id:"67851", code:"+67851", name:"ປຕູນ້ຳ ເປີດ-ປິດ ແບບ 2ທາງ (ສະແຕນເລດ 304) ຮຸ້ນ SY01", price:155015, image:"https://placehold.co/300x300/ffffff/222?text=Valve", category:"ອຸປະກອນປະປາ", stock:true},
-  {id:"58951", code:"+58951 (1Z)", name:"ຊີມັງກາວ ເວເບີ ໄທເຊບ ສຳລັບກະເບື້ອງ", price:108599, image:"https://placehold.co/300x300/ffe14d/222?text=Weber", category:"ວັດສະດຸກໍ່ສ້າງ", stock:true},
-  {id:"43196", code:"+43196", name:"ກ໊ອກສະໜາມ (ຂາຕັ້ງ) ຫົວທອງເຫຼືອງ ຫົວຟ້າ", price:80502, image:"https://placehold.co/300x300/ffffff/222?text=Faucet", category:"ອຸປະກອນປະປາ", stock:true},
-  {id:"34248", code:"+34248", name:"ບອບອາວ ສີຝາ (18mm) (150ອັນ/ຖົງ) SCG", price:30546, image:"https://placehold.co/300x300/ffffff/222?text=Screw", category:"ຮາດແວ ແລະ ເຄື່ອງມືຊ່າງ", stock:true},
+  {id:"27976", code:"+27976 (5Z)", name:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ເຄີ່ງເງົາ (LR-112)", price:358427, image:"https://placehold.co/300x300/f3720c/1a0d00?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true, description:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ຄຸນນະພາບສູງ ຄວາມເຄີ່ງເງົາ ໃຫ້ຄວາມທົນທານຕໍ່ຮອຍຂູດຂີດ ແລະ ສະພາບອາກາດ."},
+  {id:"27735", code:"+27735 (5Z)", name:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ເຄີ່ງເງົາ (LR-115)", price:358427, image:"https://placehold.co/300x300/f3720c/1a0d00?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:false, description:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ຄວາມເຄີ່ງເງົາ ໂທນສີ LR-115 ແຫ້ງໄວ."},
+  {id:"24473", code:"+24473 (5Z)", name:"ສີຮອງພື້ນ ປູນເກົ່າ ແລະ ປູນໃໝ່ ຜາຍນອກ-ໃນ (#1000)", price:2254789, image:"https://placehold.co/300x300/e6533f/fff?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true, description:"ສີຮອງພື້ນສຳລັບປູນເກົ່າ ແລະ ປູນໃໝ່ ໃຊ້ໄດ້ທັງພາຍໃນ ແລະ ພາຍນອກ."},
+  {id:"22129", code:"+22129 (3Z)", name:"ທິນເນີ ປະສົມແລກເກີ (No.R71) (1/4GL) TOA", price:121136, image:"https://placehold.co/300x300/1c1c1f/f2f0ec?text=Thinner", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true, description:"ທິນເນີສຳລັບປະສົມແລກເກີ ຮຸ້ນ No.R71 ຂະໜາດ 1/4 ແກລອນ ຈາກ TOA."},
+  {id:"67011", code:"+67011", name:"ດອກໄຟດອກປ້ອມ ແອວຈິດ (E27) ແສງຂາວ (6500K)", price:44174, image:"https://placehold.co/300x300/ffffff/222?text=LED", category:"ອຸປະກອນໄຟຟ້າ", stock:true, description:"ດອກໄຟ LED ຂົ້ວ E27 ແສງຂາວ 6500K ປະຢັດພະລັງງານ."},
+  {id:"67851", code:"+67851", name:"ປຕູນ້ຳ ເປີດ-ປິດ ແບບ 2ທາງ (ສະແຕນເລດ 304) ຮຸ້ນ SY01", price:155015, image:"https://placehold.co/300x300/ffffff/222?text=Valve", category:"ອຸປະກອນປະປາ", stock:true, description:"ປະຕູນ້ຳແບບ 2 ທາງ ຜະລິດຈາກສະແຕນເລດເບີ 304 ທົນຕໍ່ສະໜິມ."},
+  {id:"58951", code:"+58951 (1Z)", name:"ຊີມັງກາວ ເວເບີ ໄທເຊບ ສຳລັບກະເບື້ອງ", price:108599, image:"https://placehold.co/300x300/ffe14d/222?text=Weber", category:"ວັດສະດຸກໍ່ສ້າງ", stock:true, description:"ຊີມັງກາວສຳລັບຕິດຕັ້ງກະເບື້ອງ ຈາກ Weber ຮຸ້ນ ໄທເຊບ."},
+  {id:"43196", code:"+43196", name:"ກ໊ອກສະໜາມ (ຂາຕັ້ງ) ຫົວທອງເຫຼືອງ ຫົວຟ້າ", price:80502, image:"https://placehold.co/300x300/ffffff/222?text=Faucet", category:"ອຸປະກອນປະປາ", stock:true, description:"ກ໊ອກນ້ຳສະໜາມແບບຂາຕັ້ງ ຫົວທອງເຫຼືອງແທ້ ໃຫ້ຄວາມທົນທານສູງ."},
+  {id:"34248", code:"+34248", name:"ບອບອາວ ສີຝາ (18mm) (150ອັນ/ຖົງ) SCG", price:30546, image:"https://placehold.co/300x300/ffffff/222?text=Screw", category:"ຮາດແວ ແລະ ເຄື່ອງມືຊ່າງ", stock:true, description:"ບອບອາວສີຝາ ຂະໜາດ 18mm ບັນຈຸ 150 ອັນຕໍ່ຖົງ ຈາກ SCG."},
 ];
 
 let PRODUCTS = [];
@@ -397,6 +425,7 @@ function enterApp(){
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("app").classList.add("show");
   loadProducts();
+  loadQr();
 }
 if(sessionStorage.getItem(AUTH_KEY) === "1"){
   enterApp();
@@ -430,7 +459,7 @@ function goPage(name){
   document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("active"));
   const btn = document.querySelector(`.nav-item[data-page="${name}"]`);
   if(btn) btn.classList.add("active");
-  if(name === "sync") renderJSArray();
+  if(name === "sync"){ renderJSArray(); renderQrCode(); }
 }
 
 /* ---------------- DASHBOARD ---------------- */
@@ -519,6 +548,7 @@ function openProductModal(id){
     document.getElementById("f_name").value = p.name;
     document.getElementById("f_price").value = p.price;
     document.getElementById("f_category").value = p.category;
+    document.getElementById("f_description").value = p.description || "";
     document.getElementById("f_image").value = p.image;
     document.getElementById("f_imgPreview").src = p.image || "https://placehold.co/100x100/222/fff?text=?";
     document.getElementById("f_stock").checked = !!p.stock;
@@ -531,10 +561,23 @@ function openProductModal(id){
     document.getElementById("f_name").value = "";
     document.getElementById("f_price").value = "";
     document.getElementById("f_category").value = "";
+    document.getElementById("f_description").value = "";
     document.getElementById("f_image").value = "";
     document.getElementById("f_imgPreview").src = "https://placehold.co/100x100/222/fff?text=?";
     document.getElementById("f_stock").checked = true;
   }
+  document.getElementById("f_imageFile").value = "";
+}
+
+function onProductImageFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    document.getElementById("f_image").value = e.target.result;
+    document.getElementById("f_imgPreview").src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 function closeProductModal(){
   document.getElementById("productModal").classList.remove("show");
@@ -546,6 +589,7 @@ function saveProduct(){
   const price = Number(document.getElementById("f_price").value) || 0;
   const category = document.getElementById("f_category").value.trim() || "ອື່ນໆ";
   const code = document.getElementById("f_code").value.trim();
+  const description = document.getElementById("f_description").value.trim();
   const image = document.getElementById("f_image").value.trim() || "https://placehold.co/300x300/222/fff?text=No+Image";
   const stock = document.getElementById("f_stock").checked;
   let id = document.getElementById("f_id").value.trim();
@@ -555,7 +599,7 @@ function saveProduct(){
   if(editId){
     const idx = PRODUCTS.findIndex(p=>String(p.id)===String(editId));
     if(idx > -1){
-      PRODUCTS[idx] = {...PRODUCTS[idx], code, name, price, category, image, stock};
+      PRODUCTS[idx] = {...PRODUCTS[idx], code, name, price, category, description, image, stock};
     }
     showToast("ບັນທຶກການແກ້ໄຂແລ້ວ");
   }else{
@@ -563,7 +607,7 @@ function saveProduct(){
     if(PRODUCTS.some(p=>String(p.id)===String(id))){
       showToast("ID ນີ້ຖືກໃຊ້ແລ້ວ, ກະລຸນາປ່ຽນ ID", true); return;
     }
-    PRODUCTS.push({id, code, name, price, category, image, stock});
+    PRODUCTS.push({id, code, name, price, category, description, image, stock});
     showToast("ເພີ່ມສິນຄ້າໃໝ່ແລ້ວ");
   }
   persist();
@@ -589,9 +633,9 @@ function resetData(){
 
 /* ---------------- CSV EXPORT / IMPORT ---------------- */
 function exportCSV(){
-  const rows = [["id","code","name","price","image","category","stock"]];
+  const rows = [["id","code","name","price","image","category","stock","description"]];
   PRODUCTS.forEach(p=>{
-    rows.push([p.id, p.code||"", p.name, p.price, p.image, p.category, p.stock ? "true":"false"]);
+    rows.push([p.id, p.code||"", p.name, p.price, p.image, p.category, p.stock ? "true":"false", p.description||""]);
   });
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
@@ -617,6 +661,7 @@ function importCSV(evt){
           image: row.image || "https://placehold.co/300x300/222/fff?text=No+Image",
           category: row.category || "ອື່ນໆ",
           stock: String(row.stock).toLowerCase() !== "false" && String(row.stock).trim() !== "0",
+          description: row.description || row.ລາຍລະອຽດ || "",
         }));
         if(imported.length === 0) throw new Error("empty");
         PRODUCTS = imported;
@@ -638,7 +683,7 @@ function importCSV(evt){
 /* ---------------- COPY JS ARRAY ---------------- */
 function buildJSArrayString(){
   const lines = PRODUCTS.map(p => {
-    return `  {id:${JSON.stringify(String(p.id))}, code:${JSON.stringify(p.code||"")}, name:${JSON.stringify(p.name)}, price:${Number(p.price)||0}, image:${JSON.stringify(p.image)}, category:${JSON.stringify(p.category)}, stock:${p.stock?"true":"false"}},`;
+    return `  {id:${JSON.stringify(String(p.id))}, code:${JSON.stringify(p.code||"")}, name:${JSON.stringify(p.name)}, price:${Number(p.price)||0}, image:${JSON.stringify(p.image)}, category:${JSON.stringify(p.category)}, stock:${p.stock?"true":"false"}, description:${JSON.stringify(p.description||"")}},`;
   });
   return "const SAMPLE_PRODUCTS = [\n" + lines.join("\n") + "\n];";
 }
@@ -649,6 +694,52 @@ function copyJSArray(){
   const text = buildJSArrayString();
   navigator.clipboard.writeText(text).then(()=>{
     showToast("ກັອບປີ້ໂຄ້ດແລ້ວ, ນຳໄປວາງໃນ index.html");
+  }).catch(()=>{
+    showToast("ກັອບປີ້ບໍ່ສຳເລັດ, ກະລຸນາເລືອກຂໍ້ຄວາມແລ້ວກັອບປີ້ດ້ວຍມື", true);
+  });
+}
+
+/* ---------------- STORE QR ---------------- */
+let CURRENT_QR = DEFAULT_QR;
+
+function loadQr(){
+  CURRENT_QR = localStorage.getItem(QR_KEY) || DEFAULT_QR;
+  document.getElementById("qrPreviewImg").src = CURRENT_QR;
+  document.getElementById("qrUrlInput").value = CURRENT_QR.startsWith("data:") ? "" : CURRENT_QR;
+  renderQrCode();
+}
+function onQrUrlInput(){
+  const val = document.getElementById("qrUrlInput").value.trim();
+  if(val){
+    CURRENT_QR = val;
+    document.getElementById("qrPreviewImg").src = val;
+    renderQrCode();
+  }
+}
+function onQrFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    CURRENT_QR = e.target.result;
+    document.getElementById("qrPreviewImg").src = CURRENT_QR;
+    document.getElementById("qrUrlInput").value = "";
+    renderQrCode();
+  };
+  reader.readAsDataURL(file);
+}
+function saveQr(){
+  localStorage.setItem(QR_KEY, CURRENT_QR);
+  showToast("ບັນທຶກ QR ຮ້ານແລ້ວ");
+  renderQrCode();
+}
+function renderQrCode(){
+  document.getElementById("qrCodeOutput").textContent = `const STORE_QR_IMAGE = ${JSON.stringify(CURRENT_QR)};`;
+}
+function copyQrCode(){
+  const text = `const STORE_QR_IMAGE = ${JSON.stringify(CURRENT_QR)};`;
+  navigator.clipboard.writeText(text).then(()=>{
+    showToast("ກັອບປີ້ໂຄ້ດ QR ແລ້ວ, ນຳໄປວາງແທນໃນ index.html");
   }).catch(()=>{
     showToast("ກັອບປີ້ບໍ່ສຳເລັດ, ກະລຸນາເລືອກຂໍ້ຄວາມແລ້ວກັອບປີ້ດ້ວຍມື", true);
   });
