@@ -152,6 +152,33 @@
   .btn-confirm{background:var(--orange); color:#1a0d00;}
   .note{font-size:12px; color:var(--text-dim); background:var(--panel-2); border-radius:8px; padding:10px; line-height:1.5;}
 
+  /* ---------- QR pay box & slip upload ---------- */
+  .qr-box{display:none; flex-direction:column; align-items:center; gap:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px; text-align:center;}
+  .qr-box.show{display:flex;}
+  .qr-box img{width:150px; height:150px; object-fit:contain; background:#fff; border-radius:8px;}
+  .qr-box .qr-cap{font-size:12px; color:var(--text-dim); line-height:1.5;}
+  .slip-field{display:none;}
+  .slip-field.show{display:flex;}
+  .slip-upload{border:1px dashed var(--line); border-radius:8px; padding:12px; text-align:center; font-size:12.5px; color:var(--text-dim); cursor:pointer;}
+  .slip-upload:hover{border-color:var(--orange); color:var(--orange);}
+  .slip-preview{width:100%; max-height:150px; object-fit:contain; border-radius:8px; margin-top:8px; background:#fff; display:none;}
+
+  /* ---------- Receipt modal ---------- */
+  #receiptContent{font-size:13.5px; line-height:1.7;}
+  #receiptContent .r-row{display:flex; justify-content:space-between; gap:10px;}
+  #receiptContent .r-slip{width:100%; max-height:160px; object-fit:contain; border-radius:8px; margin:10px 0; background:#fff;}
+
+  /* ---------- Product detail modal ---------- */
+  .pd-modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:65; padding:16px;}
+  .pd-modal.show{display:flex;}
+  .pd-box{background:var(--panel); border:1px solid var(--line); border-radius:14px; width:660px; max-width:100%; max-height:90vh; overflow-y:auto; display:grid; grid-template-columns:260px 1fr;}
+  .pd-img{background:#fff; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .pd-img img{max-height:280px;}
+  .pd-info{padding:22px; display:flex; flex-direction:column; gap:10px;}
+  .pd-info h3{margin:0; font-size:18px; line-height:1.4;}
+  .pd-info .price{color:var(--orange); font-weight:800; font-size:20px;}
+  .pd-desc{color:var(--text-dim); font-size:13.5px; line-height:1.65; white-space:pre-wrap;}
+
   footer{padding:24px 20px; text-align:center; color:var(--text-dim); font-size:12px; border-top:1px solid var(--line);}
   .fab{position:fixed; bottom:20px; right:20px; background:var(--orange); color:#1a0d00; border:none; width:48px; height:48px; border-radius:50%; font-size:20px; z-index:30;}
 
@@ -159,6 +186,9 @@
     .layout{grid-template-columns:1fr;}
     aside.filters{position:static;}
     .hero{grid-template-columns:1fr;}
+  }
+  @media(max-width:640px){
+    .pd-box{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -258,16 +288,56 @@
     <div class="field"><label>ທີ່ຢູ່ຈັດສົ່ງ</label><textarea id="custAddr" rows="2" placeholder="ບ້ານ, ເມືອງ, ແຂວງ"></textarea></div>
     <div class="field">
       <label>ວິທີຊຳລະເງິນ</label>
-      <select id="payMethod">
+      <select id="payMethod" onchange="togglePaymentExtras()">
         <option>ຊຳລະປາຍທາງ (COD)</option>
         <option>ໂອນຜ່ານທະນາຄານ</option>
         <option>ຊຳລະຜ່ານ QR / Mobile Banking</option>
       </select>
     </div>
+    <div class="qr-box" id="qrBox">
+      <img id="qrImage" src="" alt="ຄິວອາໂອນເງິນ">
+      <div class="qr-cap">ສະແກນ QR ນີ້ດ້ວຍແອັບທະນາຄານ/ Mobile Banking ເພື່ອໂອນເງິນ ແລ້ວອັບໂຫລດຫຼັກຖານດ້ານລຸ່ມ</div>
+    </div>
+    <div class="field slip-field" id="slipField">
+      <label>ອັບໂຫລດຫຼັກຖານການໂອນເງິນ (ຮູບສະລິບ)</label>
+      <label class="slip-upload" for="slipInput">📎 ກົດເພື່ອເລືອກຮູບສະລິບຈາກເຄື່ອງ</label>
+      <input type="file" id="slipInput" accept="image/*" style="display:none;" onchange="onSlipSelected(event)">
+      <img id="slipPreview" class="slip-preview">
+    </div>
     <div class="note">⚠️ ນີ້ເປັນ Prototype: ຍັງບໍ່ໄດ້ເຊື່ອມຕໍ່ລະບົບຊຳລະເງິນຈິງ ຫຼື ຖານຂໍ້ມູນຄຳສັ່ງຊື້. ການສັ່ງຊື້ນີ້ຈະສະແດງພຽງສະຫຼຸບເທົ່ານັ້ນ.</div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeCheckout()">ຍົກເລີກ</button>
       <button class="btn-confirm" onclick="confirmOrder()">ຢືນຢັນສັ່ງຊື້</button>
+    </div>
+  </div>
+</div>
+
+<!-- Order Receipt Modal -->
+<div class="modal" id="receiptModal">
+  <div class="modal-box" style="width:420px;">
+    <h3>✅ ສັ່ງຊື້ສຳເລັດ (ຕົວຢ່າງ)</h3>
+    <div id="receiptContent"></div>
+    <div class="note" style="margin-top:10px;">⚠️ ນີ້ເປັນ Prototype: ຍັງບໍ່ໄດ້ບັນທຶກຄຳສັ່ງຊື້ຈິງ ຫຼືເຊື່ອມຕໍ່ລະບົບຊຳລະເງິນ.</div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn-confirm" style="flex:1;" onclick="closeReceipt()">ປິດ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Product Detail Modal -->
+<div class="pd-modal" id="pdModal" onclick="if(event.target===this)closePD()">
+  <div class="pd-box">
+    <div class="pd-img"><img id="pdImage" src="" alt=""></div>
+    <div class="pd-info">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <span class="tag" id="pdCategory"></span>
+        <button onclick="closePD()" style="background:none;border:none;color:var(--text);font-size:18px;">✕</button>
+      </div>
+      <h3 id="pdName"></h3>
+      <div class="price" id="pdPrice"></div>
+      <div class="stock" id="pdStock"></div>
+      <div class="pd-desc" id="pdDesc"></div>
+      <button class="add-btn" id="pdAddBtn" style="margin-top:auto;">🛒 ເພີ່ມລົງກະຕ່າ</button>
     </div>
   </div>
 </div>
@@ -289,16 +359,21 @@
    ========================================================= */
 const GOOGLE_SHEET_CSV_URL = ""; // <-- put your published Google Sheet CSV link here
 
+/* Store payment QR code shown at checkout for bank-transfer / QR payment methods.
+   Replace with your real QR image link, or generate this line from the admin
+   panel's "ຕັ້ງຄ່າ" page ("ຄັດລອກໂຄ້ດ QR") and paste it here. */
+const STORE_QR_IMAGE = "https://placehold.co/300x300/ffffff/222?text=Store+QR";
+
 const SAMPLE_PRODUCTS = [
-  {id:"27976", code:"+27976 (5Z)", name:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ເຄີ່ງເງົາ (LR-112)", price:358427, image:"https://placehold.co/300x300/f3720c/1a0d00?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true},
-  {id:"27735", code:"+27735 (5Z)", name:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ເຄີ່ງເງົາ (LR-115)", price:358427, image:"https://placehold.co/300x300/f3720c/1a0d00?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:false},
-  {id:"24473", code:"+24473 (5Z)", name:"ສີຮອງພື້ນ ປູນເກົ່າ ແລະ ປູນໃໝ່ ຜາຍນອກ-ໃນ (#1000)", price:2254789, image:"https://placehold.co/300x300/e6533f/fff?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true},
-  {id:"22129", code:"+22129 (3Z)", name:"ທິນເນີ ປະສົມແລກເກີ (No.R71) (1/4GL) TOA", price:121136, image:"https://placehold.co/300x300/1c1c1f/f2f0ec?text=Thinner", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true},
-  {id:"67011", code:"+67011", name:"ດອກໄຟດອກປ້ອມ ແອວຈິດ (E27) ແສງຂາວ (6500K)", price:44174, image:"https://placehold.co/300x300/ffffff/222?text=LED", category:"ອຸປະກອນໄຟຟ້າ", stock:true},
-  {id:"67851", code:"+67851", name:"ປຕູນ້ຳ ເປີດ-ປິດ ແບບ 2ທາງ (ສະແຕນເລດ 304) ຮຸ້ນ SY01", price:155015, image:"https://placehold.co/300x300/ffffff/222?text=Valve", category:"ອຸປະກອນປະປາ", stock:true},
-  {id:"58951", code:"+58951 (1Z)", name:"ຊີມັງກາວ ເວເບີ ໄທເຊບ ສຳລັບກະເບື້ອງ", price:108599, image:"https://placehold.co/300x300/ffe14d/222?text=Weber", category:"ວັດສະດຸກໍ່ສ້າງ", stock:true},
-  {id:"43196", code:"+43196", name:"ກ໊ອກສະໜາມ (ຂາຕັ້ງ) ຫົວທອງເຫຼືອງ ຫົວຟ້າ", price:80502, image:"https://placehold.co/300x300/ffffff/222?text=Faucet", category:"ອຸປະກອນປະປາ", stock:true},
-  {id:"34248", code:"+34248", name:"ບອບອາວ ສີຝາ (18mm) (150ອັນ/ຖົງ) SCG", price:30546, image:"https://placehold.co/300x300/ffffff/222?text=Screw", category:"ຮາດແວ ແລະ ເຄື່ອງມືຊ່າງ", stock:true},
+  {id:"27976", code:"+27976 (5Z)", name:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ເຄີ່ງເງົາ (LR-112)", price:358427, image:"https://placehold.co/300x300/f3720c/1a0d00?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true, description:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ຄຸນນະພາບສູງ ຄວາມເຄີ່ງເງົາ ໃຫ້ຄວາມທົນທານຕໍ່ຮອຍຂູດຂີດ ແລະ ສະພາບອາກາດ ເໝາະສຳລັບງານທາເຫຼັກທົ່ວໄປທັງພາຍໃນ ແລະ ພາຍນອກ."},
+  {id:"27735", code:"+27735 (5Z)", name:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ເຄີ່ງເງົາ (LR-115)", price:358427, image:"https://placehold.co/300x300/f3720c/1a0d00?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:false, description:"ສີທາເຫຼັກເປືອຍທົ່ວໄປ ສູດນ້ຳ ຄວາມເຄີ່ງເງົາ ໂທນສີ LR-115 ແຫ້ງໄວ ບໍ່ມີກິ່ນສານເຄມີແຮງ."},
+  {id:"24473", code:"+24473 (5Z)", name:"ສີຮອງພື້ນ ປູນເກົ່າ ແລະ ປູນໃໝ່ ຜາຍນອກ-ໃນ (#1000)", price:2254789, image:"https://placehold.co/300x300/e6533f/fff?text=Paint", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true, description:"ສີຮອງພື້ນສຳລັບປູນເກົ່າ ແລະ ປູນໃໝ່ ໃຊ້ໄດ້ທັງພາຍໃນ ແລະ ພາຍນອກ ຊ່ວຍໃຫ້ສີທັບໜ້າຕິດແໜ້ນ ແລະ ສີສະໝ່ຳສະເໝີກວ່າ."},
+  {id:"22129", code:"+22129 (3Z)", name:"ທິນເນີ ປະສົມແລກເກີ (No.R71) (1/4GL) TOA", price:121136, image:"https://placehold.co/300x300/1c1c1f/f2f0ec?text=Thinner", category:"ສີ ແລະ ອຸປະກອນທາສີ", stock:true, description:"ທິນເນີສຳລັບປະສົມແລກເກີ ຮຸ້ນ No.R71 ຂະໜາດ 1/4 ແກລອນ ຈາກ TOA ໃຊ້ປັບຄວາມຂຸ້ນຂອງແລກເກີກ່ອນສີດ/ທາ."},
+  {id:"67011", code:"+67011", name:"ດອກໄຟດອກປ້ອມ ແອວຈິດ (E27) ແສງຂາວ (6500K)", price:44174, image:"https://placehold.co/300x300/ffffff/222?text=LED", category:"ອຸປະກອນໄຟຟ້າ", stock:true, description:"ດອກໄຟ LED ຂົ້ວ E27 ແສງຂາວ 6500K ປະຢັດພະລັງງານ ອາຍຸການໃຊ້ງານຍາວນານ ເໝາະສຳລັບໃຊ້ພາຍໃນເຮືອນ ແລະ ຮ້ານຄ້າ."},
+  {id:"67851", code:"+67851", name:"ປຕູນ້ຳ ເປີດ-ປິດ ແບບ 2ທາງ (ສະແຕນເລດ 304) ຮຸ້ນ SY01", price:155015, image:"https://placehold.co/300x300/ffffff/222?text=Valve", category:"ອຸປະກອນປະປາ", stock:true, description:"ປະຕູນ້ຳແບບ 2 ທາງ ຜະລິດຈາກສະແຕນເລດເບີ 304 ທົນຕໍ່ສະໜິມ ເໝາະສຳລັບລະບົບປະປາພາຍໃນເຮືອນ ແລະ ອາຄານ."},
+  {id:"58951", code:"+58951 (1Z)", name:"ຊີມັງກາວ ເວເບີ ໄທເຊບ ສຳລັບກະເບື້ອງ", price:108599, image:"https://placehold.co/300x300/ffe14d/222?text=Weber", category:"ວັດສະດຸກໍ່ສ້າງ", stock:true, description:"ຊີມັງກາວສຳລັບຕິດຕັ້ງກະເບື້ອງ ຈາກ Weber ຮຸ້ນ ໄທເຊບ ຍຶດຕິດແໜ້ນ ທົນຄວາມຊຸ່ມ ເໝາະສຳລັບພື້ນ ແລະ ຝາ."},
+  {id:"43196", code:"+43196", name:"ກ໊ອກສະໜາມ (ຂາຕັ້ງ) ຫົວທອງເຫຼືອງ ຫົວຟ້າ", price:80502, image:"https://placehold.co/300x300/ffffff/222?text=Faucet", category:"ອຸປະກອນປະປາ", stock:true, description:"ກ໊ອກນ້ຳສະໜາມແບບຂາຕັ້ງ ຫົວທອງເຫຼືອງແທ້ ໃຫ້ຄວາມທົນທານສູງ ເໝາະສຳລັບໃຊ້ພາຍນອກອາຄານ."},
+  {id:"34248", code:"+34248", name:"ບອບອາວ ສີຝາ (18mm) (150ອັນ/ຖົງ) SCG", price:30546, image:"https://placehold.co/300x300/ffffff/222?text=Screw", category:"ຮາດແວ ແລະ ເຄື່ອງມືຊ່າງ", stock:true, description:"ບອບອາວສີຝາ ຂະໜາດ 18mm ບັນຈຸ 150 ອັນຕໍ່ຖົງ ຈາກ SCG ເໝາະສຳລັບງານໄມ້ ແລະ ງານໂຄງສ້າງທົ່ວໄປ."},
 ];
 
 let ALL_PRODUCTS = [];
@@ -328,6 +403,7 @@ function loadProducts(){
           image: row.image || "https://placehold.co/300x300/222/fff?text=No+Image",
           category: row.category || "ອື່ນໆ",
           stock: String(row.stock).toLowerCase() !== "false" && String(row.stock).trim() !== "0",
+          description: row.description || row.ລາຍລະອຽດ || "",
         }));
         if(ALL_PRODUCTS.length === 0) throw new Error("empty sheet");
       }catch(e){
@@ -384,10 +460,10 @@ function renderGrid(products){
   }
   grid.innerHTML = products.map(p => `
     <div class="card">
-      <div class="thumb"><img src="${p.image}" alt="${p.name}"></div>
+      <div class="thumb" style="cursor:pointer;" onclick="openProductDetail('${p.id}')"><img src="${p.image}" alt="${p.name}"></div>
       <div class="body">
         <div class="code">${p.code || p.id}</div>
-        <div class="name">${p.name}</div>
+        <div class="name" style="cursor:pointer;" onclick="openProductDetail('${p.id}')">${p.name}</div>
         <div class="price">${formatKip(p.price)}</div>
         <div class="stock ${p.stock ? "in":"out"}">${p.stock ? "✔ ມີສິນຄ້າ" : "✕ ສິນຄ້າໝົດ"}</div>
         <button class="add-btn" ${p.stock?"":"disabled"} onclick="addToCart('${p.id}', this)">
@@ -450,25 +526,88 @@ function updateCartUI(){
 function openCart(){ document.getElementById("drawer").classList.add("show"); document.getElementById("overlay").classList.add("show"); }
 function closeCart(){ document.getElementById("drawer").classList.remove("show"); document.getElementById("overlay").classList.remove("show"); }
 
+let SLIP_DATA_URL = null;
+
 function openCheckout(){
   if(Object.keys(CART).length === 0){ alert("ກະຕ່າຍັງບໍ່ມີສິນຄ້າ"); return; }
+  SLIP_DATA_URL = null;
+  document.getElementById("slipInput").value = "";
+  document.getElementById("slipPreview").style.display = "none";
+  document.getElementById("payMethod").value = "ຊຳລະປາຍທາງ (COD)";
+  togglePaymentExtras();
   document.getElementById("checkoutModal").classList.add("show");
 }
 function closeCheckout(){ document.getElementById("checkoutModal").classList.remove("show"); }
+
+function paymentNeedsSlip(){
+  return document.getElementById("payMethod").value !== "ຊຳລະປາຍທາງ (COD)";
+}
+
+function togglePaymentExtras(){
+  const needsSlip = paymentNeedsSlip();
+  document.getElementById("qrImage").src = STORE_QR_IMAGE;
+  document.getElementById("qrBox").classList.toggle("show", needsSlip);
+  document.getElementById("slipField").classList.toggle("show", needsSlip);
+}
+
+function onSlipSelected(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    SLIP_DATA_URL = e.target.result;
+    const preview = document.getElementById("slipPreview");
+    preview.src = SLIP_DATA_URL;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+}
 
 function confirmOrder(){
   const name = document.getElementById("custName").value.trim();
   const phone = document.getElementById("custPhone").value.trim();
   const addr = document.getElementById("custAddr").value.trim();
   if(!name || !phone || !addr){ alert("ກະລຸນາປ້ອນຂໍ້ມູນໃຫ້ຄົບຖ້ວນ"); return; }
+  if(paymentNeedsSlip() && !SLIP_DATA_URL){ alert("ກະລຸນາອັບໂຫລດຮູບສະລິບການໂອນເງິນກ່ອນຢືນຢັນສັ່ງຊື້"); return; }
+
   const total = Object.values(CART).reduce((s,v)=> s + v.qty*v.product.price, 0);
   const pay = document.getElementById("payMethod").value;
-  alert(`ສັ່ງຊື້ສຳເລັດ (ຕົວຢ່າງ)!\n\nຜູ້ຮັບ: ${name}\nເບີໂທ: ${phone}\nທີ່ຢູ່: ${addr}\nວິທີຊຳລະ: ${pay}\nຍອດລວມ: ${formatKip(total)}\n\n(ຄຳສັ່ງຊື້ນີ້ຍັງບໍ່ໄດ້ບັນທຶກຈິງ — ຕ້ອງເຊື່ອມຕໍ່ backend/ຖານຂໍ້ມູນ ແລະ ລະບົບຊຳລະເງິນເພື່ອໃຫ້ໃຊ້ງານໄດ້ຈິງ)`);
+
+  document.getElementById("receiptContent").innerHTML = `
+    <div class="r-row"><span>ຜູ້ຮັບ</span><strong>${name}</strong></div>
+    <div class="r-row"><span>ເບີໂທ</span><strong>${phone}</strong></div>
+    <div class="r-row"><span>ທີ່ຢູ່</span><strong>${addr}</strong></div>
+    <div class="r-row"><span>ວິທີຊຳລະ</span><strong>${pay}</strong></div>
+    <div class="r-row"><span>ຍອດລວມ</span><strong style="color:var(--orange);">${formatKip(total)}</strong></div>
+    ${SLIP_DATA_URL ? `<div style="font-size:12px; color:var(--text-dim); margin-top:8px;">ຫຼັກຖານການໂອນເງິນ:</div><img class="r-slip" src="${SLIP_DATA_URL}">` : ""}
+  `;
+  document.getElementById("receiptModal").classList.add("show");
+
   CART = {};
   updateCartUI();
   closeCheckout();
   closeCart();
 }
+function closeReceipt(){ document.getElementById("receiptModal").classList.remove("show"); }
+
+function openProductDetail(id){
+  const p = ALL_PRODUCTS.find(x=>String(x.id)===String(id));
+  if(!p) return;
+  document.getElementById("pdImage").src = p.image;
+  document.getElementById("pdCategory").textContent = p.category;
+  document.getElementById("pdName").textContent = p.name;
+  document.getElementById("pdPrice").textContent = formatKip(p.price);
+  document.getElementById("pdDesc").textContent = p.description && p.description.trim() ? p.description : "ບໍ່ມີລາຍລະອຽດເພີ່ມເຕີມສຳລັບສິນຄ້ານີ້.";
+  const stockEl = document.getElementById("pdStock");
+  stockEl.className = "stock " + (p.stock ? "in" : "out");
+  stockEl.textContent = p.stock ? "✔ ມີສິນຄ້າ" : "✕ ສິນຄ້າໝົດ";
+  const addBtn = document.getElementById("pdAddBtn");
+  addBtn.disabled = !p.stock;
+  addBtn.innerHTML = p.stock ? "🛒 ເພີ່ມລົງກະຕ່າ" : "ສິນຄ້າໝົດ";
+  addBtn.onclick = function(){ addToCart(p.id); closePD(); };
+  document.getElementById("pdModal").classList.add("show");
+}
+function closePD(){ document.getElementById("pdModal").classList.remove("show"); }
 
 loadProducts();
 </script>
